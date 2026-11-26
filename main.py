@@ -40,7 +40,7 @@ with database() as db:                #создаем таблицу расхо�
     """)
 
 class Expense(BaseModel): #создаем модель расходов с проверкой данных
-    rubles: Decimal = Field(gt=0, max_digits=12, decimal_places=2)
+    rubles: Decimal = Field(gt=0, max_digits=12, decimal_places=2) 
     category: str
     day: date
     comment: str = Field(default="", max_length=300)
@@ -65,7 +65,7 @@ class ExpenseTracker:
         self.app.get("/api/expenses")(self.get_expenses)
         self.app.post("/api/expenses", status_code=201)(self.add_expense)
 
-    def index(self, request: Request, category: str = "", day: date | None = None, added: bool = False):
+    def index(self, request: Request, category: str = "", day: date | None = None, added: bool = False): #функция для заполнения фронтенда
         return self.templates.TemplateResponse(request, "index.html", {
             **self.get_expenses(),
             "categories": CATEGORIES,
@@ -74,7 +74,7 @@ class ExpenseTracker:
             "added": added,
         })
 
-    def submit_expense(self, expense: Annotated[Expense, Form()]):
+    def submit_expense(self, expense: Expense = Form()): #функция для добавления расхода через фронтенд
         self.add_expense(expense)
         query = urlencode({"category": expense.category, "day": expense.day, "added": 1})
         return RedirectResponse(f"/?{query}", status_code=303)
@@ -82,12 +82,12 @@ class ExpenseTracker:
     def get_categories(self):
         return [{"code": code, "title": title} for code, title in CATEGORIES.items()]
 
-    def get_expenses(self):
+    def get_expenses(self): #функция для получения списка расходов и их общей суммы
         with database() as db:
             rows = [dict(row) for row in db.execute("SELECT * FROM expenses ORDER BY day DESC, id DESC")]
         return {"total_kopeyki": sum(row["kopeyki"] for row in rows), "entries": rows}
 
-    def add_expense(self, expense: Expense):
+    def add_expense(self, expense: Expense): #функция для записи расхода в базу данных
         if expense.category not in CATEGORIES:
             raise HTTPException(422, "Неизвестная категория")
         kopeyki = int(expense.rubles * 100)
@@ -106,3 +106,4 @@ class ExpenseTracker:
 
 
 app = ExpenseTracker().app
+
